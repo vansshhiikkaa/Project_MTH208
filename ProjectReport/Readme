@@ -1,0 +1,2 @@
+Project_report.pdf: This is our project report.
+* For running attached file Project_report.Rmd all datasets from folder Data need to be loaded in global enviornment.
