@@ -1,0 +1,569 @@
+---
+title: "*Project Report on* **T20 WORLDCUP 2016**"
+subtitle: "MTH208A Data Science Lab - I"
+date: '20/11/22'
+output:
+  pdf_document: default
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+### Submitted By:
+###### Abhraraj Haldar - 221255
+###### Pravin Raman Bharti - 221375
+###### Rajdeep Adhya - 221385
+###### Vanshika Gupta - 211146
+
+
+### Under The Guidance Of:
+#### Dr. Dootika Vats
+###### Department of Mathematics
+
+
+###### DEPARTMENT OF MATHEMATICS AND STATISTICS
+###### INDIAN INSTITUTE OF TECHNOLOGY
+###### KANPUR
+
+
+
+
+
+
+```{r, include = FALSE}
+
+library(ggplot2)
+library(dplyr)
+library(patchwork)
+library(knitr)
+library(reshape)
+
+```
+
+
+```{r}
+
+load("T20_WorldCup_2016_1.Rdata")
+load("WestIndies_Match.Rdata")
+load("England_Matches.Rdata")
+load("NewZealand_match.Rdata")
+load("India_Matches.Rdata")
+```
+
+\newpage
+
+# DATA
+
+The data is based on the 2016 ICC World Twenty20, the sixth edition of the ICC World Twenty20, the world championship of Twenty20 International cricket. It was held in India from 8 March to 3 April 2016 and was the first edition to be hosted by India.
+
+The dataset contains 33 rows and 13 columns which means we have observations on a total of 33 matches played between various teams.
+
+Various variables in our dataset are: Team1, Team2, Date, Stadium, Toss_winner, Toss_decision, Team1_runs, Team1_wickets, Team2_runs, Match_winner and POM.
+
+The table below is showing the first 6 rows and 6 columns of our dataset.
+ 
+```{r, echo = FALSE, results = 'asis'}
+
+kable(head(T20_WorldCup_2016[1:6]), caption = "T20 World Cup 2016")
+
+```
+
+We also have other Lists of data frames based on the scoreboard of four semi-finalist teams for which we have given names such as: 
+eng_Mat, Ind_Mat, nz_Mat and Wi_Mat
+having lists of 24, 20, 20, and 24 data frames respectively.
+
+```{r}
+
+kable(Ind_Mat[[1]])
+
+
+```
+
+\newpage
+```{r}
+kable(Ind_Mat[[11]])
+```
+
+# OBTAINING THE DATA
+
+We have obtained our data by web scrapping of website named www.espncricinfo.com.
+Firstly, we got data on 35 matches out of that we have deleted data on two matches which got canceled. So, we worked on data on 33 matches.
+Then we made data frame as described in Data part of this report.
+
+
+# IDENTIFY ANY BIASES IN THE DATA
+
+As the data is based on actual scores and realistic conditions of matches played by various teams so there may not have any biases.
+ 
+Still here are some biases which we can think of:
+ 
+   1. We assumed that all matches were played in identical conditions but there can be some biases in terms of weather in a particular stadium.
+   
+   2. We assumed that all the players were in identical conditions when we observed their performances but there may be some biases as players who were injured doesn't give their best.
+
+
+# INTERESTING QUESTIONS TO ASK FROM THE DATA
+
+
+### 1. Did a particular stadium could play an important role in winning the match through a toss win?
+
+Sometimes a particular stadium or more specifically its pitch plays an important role in winning a cricket match. The bounce and pace of the pitch continuously changes as the match progresses.
+
+For example, in case of Vidarbha Cricket Association, the first innings score in most of the cases is greater than the 2nd innings score which signifies that chasing is relatively difficult in this pitch. A possible reason of which may be the pitch becomes slower and its turn increases after the 1st innings and the batsman faces difficulty in chasing even small a total. The plot below showing us the above fact to us.      
+
+\newpage
+#### `r unique(T20_WorldCup_2016$stadium)[1]`
+```{r}
+#| echo: false
+#| fig-width: 13
+#| fig-height: 7
+#| fig-align: "center"
+
+dat <- filter(T20_WorldCup_2016, stadium == unique(T20_WorldCup_2016$stadium)[1])
+
+n <- nrow(dat)
+Matches <- 1:n
+Teams <- c(rep("Team 1", n), rep("Team 2", n))
+Team_Runs <- c(dat$Team1_Runs, dat$Team2_Runs)
+score.bar <- data.frame(Matches, Teams, Team_Runs)
+      
+df_teams <- data.frame(dat$Team1, dat$Team2)
+new_names <- c("ZIM", "AFG", "BAN", "IRE", "HKG", "NED", "NZ", "PAK", "ENG", "SA", "SL", "INDIA", "AUS", "SCOT", "OMA", "WI")
+for(i in 1:16)
+{
+  df_teams <- replace(df_teams, df_teams == unique(c(T20_WorldCup_2016$Team1, T20_WorldCup_2016$Team2))[i], new_names[i])
+}
+      
+ggplot(data = score.bar, aes(x = Matches, y = Team_Runs, fill = Teams)) +
+  geom_bar(stat = "identity", position = position_dodge(), alpha = 0.75)  +
+  geom_text(aes(label = Team_Runs), fontface = "bold", vjust = 1.5, position = position_dodge(.9), size = 4) +
+  labs(x = "Matches", y = "Scores", title = "Runs scored in 1st innings & 2nd innings") +
+  geom_hline(yintercept = mean(dat$Team1_Runs), color = "green", lwd = 1) +
+  scale_x_discrete(limits = paste(df_teams[, 1], "VS", df_teams[, 2])) +
+  theme(plot.title = element_text(hjust = 0.5, size = 20), 
+        axis.title.x = element_text(face = "bold", colour = "blue", size = 14),
+        axis.title.y = element_text(face = "bold", colour = "blue", size = 14),
+        legend.title = element_text(face = "bold", size = 10))
+
+      
+
+      
+      
+bat.count = 0
+field.count = 0
+for(i in 1:nrow(dat))
+{
+  if(dat$Toss_Winner[i] == dat$Match_Winner[i])
+  {
+    if(dat$Toss_decision[i] == "Bat first")
+    {
+      bat.count = bat.count + 1
+    }
+    else
+    {
+      field.count = field.count + 1
+    }
+  }
+  else
+  {
+    if(dat$Toss_decision[i] == "Bat first")
+    {
+      field.count = field.count + 1
+    }
+    else
+    {
+      bat.count = bat.count + 1
+    }
+  }
+}
+      
+Decision <- c("Bat first", "Field first")
+Freq <- c(bat.count, field.count)
+      
+df <- data.frame(Decision, Freq)
+      
+ggplot(df, aes(Decision, Freq, fill = Decision)) + geom_bar(stat = "identity", position = 'dodge', alpha = 0.75, width = 0.5) +
+  geom_text(aes(label = Freq), fontface = "bold", vjust = 2, size = 8) +
+  labs(x = "Decision", y = "Frequency", title = "No. of matches won by batting first or fielding first") +
+  theme(plot.title = element_text(hjust = 0.5, size = 20), 
+        axis.title.x = element_text(face="bold", colour="red", size = 15),
+        axis.title.y = element_text(face="bold", colour="red", size = 15),
+        legend.title = element_text(face="bold", size = 10))
+      
+```
+
+1)	As the pitch becomes slower and turn increases possibly it helps the spinners to be dominant in the second innings. As a proof we can see in the Match 13 between India and New Zealand in the 2nd innings the key spinners of kiwis i.e.  Nathan McCullum, Mitchell Santner, Ish Sodhi have taken a total of 9 wickets with an Economy less than 5.5 become a key cause of the destruction of Indian Batting line up. Also, in the match between Afghanistan and Zimbabwe famous leg spinner of Afghanistan Rashid Khan performed brilliantly, taken 3 wickets with an economy of 2.75 and destructed Zimbabwe with in 127 runs which proves the dominance of spinners in the 2nd innings. 
+
+2)	Also, there are some cases where the pitch is a batting pitch and a very high total is also chased in the ground which proves that there are also some cases where the batsmen get help in the pitch like Wankhede Stadium where the total of 229 runs in the 1st innings by SA is chased by England in the match 18.
+
+#### `r unique(T20_WorldCup_2016$stadium)[4]`
+```{r}
+#| echo: false
+#| fig-width: 13
+#| fig-height: 7
+#| fig-align: "center"
+
+dat <- filter(T20_WorldCup_2016, stadium == unique(T20_WorldCup_2016$stadium)[4])
+
+n <- nrow(dat)
+Matches <- 1:n
+Teams <- c(rep("Team 1", n), rep("Team 2", n))
+Team_Runs <- c(dat$Team1_Runs, dat$Team2_Runs)
+score.bar <- data.frame(Matches, Teams, Team_Runs)
+      
+df_teams <- data.frame(dat$Team1, dat$Team2)
+new_names <- c("ZIM", "AFG", "BAN", "IRE", "HKG", "NED", "NZ", "PAK", "ENG", "SA", "SL", "INDIA", "AUS", "SCOT", "OMA", "WI")
+for(i in 1:16)
+{
+  df_teams <- replace(df_teams, df_teams == unique(c(T20_WorldCup_2016$Team1, T20_WorldCup_2016$Team2))[i], new_names[i])
+}
+      
+ggplot(data = score.bar, aes(x = Matches, y = Team_Runs, fill = Teams)) +
+  geom_bar(stat = "identity", position = position_dodge(), alpha = 0.75)  +
+  geom_text(aes(label = Team_Runs), fontface = "bold", vjust = 1.5, position = position_dodge(.9), size = 4) +
+  labs(x = "Matches", y = "Scores", title = "Runs scored in 1st innings & 2nd innings") +
+  geom_hline(yintercept = mean(dat$Team1_Runs), color = "green", lwd = 1) +
+  scale_x_discrete(limits = paste(df_teams[, 1], "VS", df_teams[, 2])) +
+  theme(plot.title = element_text(hjust = 0.5, size = 20), 
+        axis.title.x = element_text(face = "bold", colour = "blue", size = 14),
+        axis.title.y = element_text(face = "bold", colour = "blue", size = 14),
+        legend.title = element_text(face = "bold", size = 10))
+
+```
+
+All the instances prove the role of the pitch of a particular stadium in a match. 
+
+
+### 2. May the toss be an important factor in winning a match throughout the tournament?
+
+Here we consider a ratio.
+
+In the denominator, it is the total number of matches and in the numerator, it is among those total number of matches, the number of matches where the team who wins the toss also wins the match.
+
+Here in the first match, the team who wins the toss can not win the match. So, the ratio is 0. In the 2nd match, the team which wins the toss, also wins the match. So now the ratio becomes 1/2. And if we consider 4 matches, we can see that among those 4 matches, in 2 matches, the team which wins the toss, wins the match. So, the value becomes 2/4 = 0.5.
+
+If we gradually increase the number of matches, the fluctuations decrease. So, a kind of regularity is happening. We have only 33 matches. So, if we can take into account a greater number of matches, we may see proper regularity.
+
+So, from this plot, we can tell in a crude sense that if a team wins the toss, there is a 60 to 70 percent chance to the team of winning the match.
+
+The line diagram below is showing us that crude analysis.
+
+```{r}
+#| echo: false
+#| fig-width: 13
+#| fig-height: 7
+#| fig-align: "center"
+
+Toss.Match <- as.numeric(length(33))
+for(i in 1:33)
+{
+  if(T20_WorldCup_2016$Toss_Winner[i] == T20_WorldCup_2016$Match_Winner[i])
+  {
+    Toss.Match[i] <- 1
+  }
+  else
+  {
+    Toss.Match[i] <- 0
+  }
+}
+      
+win.prob <- as.numeric(length(33))
+count = 0
+sum.1 = 0
+for(i in 1:33)
+{
+  count = count + 1
+  if(Toss.Match[i] == 1)
+  {
+    sum.1 <- sum.1 + 1
+  }
+  win.prob[i] <- sum.1/count
+}
+      
+Matches <- 1:33
+winning <- data.frame(Matches, Toss.Match, win.prob)
+ggplot(data = winning, aes(Matches, win.prob, group = 1)) + geom_line(color = "blue") + 
+  geom_point() + xlim(1, 33) + geom_hline(yintercept = c(0.5, 1), color = "red") +
+  labs(x = "Number of Matches", y = "Relative Frequency")
+
+```
+
+
+
+# IMPORTANT VISUALIZATIONS
+
+
+We make pie charts of runs scored by the individual players of 4 Semi-Finalist teams in all the matches.
+
+The reason for making pie charts is so that, we can see the contribution of individual players in achieving the total score. 
+
+```{r}
+#| echo: false
+#| fig-width: 13
+#| fig-height: 7
+#| fig-align: "center"
+
+ggplot(nz_Mat[[1]], aes(x = "", y = Runs, fill = Players)) +
+  geom_bar(stat = "identity", width = 1, color = "black") +
+  coord_polar("y", start = 0) + theme_void() +
+  geom_text(aes(label = Runs), position = position_stack(vjust = 0.5)) +
+  ggtitle("New Zealand Batting") +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5, size = 20))
+
+```
+
+In the above New Zealand VS India match, we can see that, all the New Zealand players had some contribution in scoring a good total.
+
+Similarly for the 4 semi-finalist teams, we have also shown the number of wickets taken by the bowlers, their economy, number of dot balls, number of boundaries they got in all the matches, through bar diagrams.
+
+Following is the bowling status of the Indian bowlers in India VS Bangladesh match.
+
+```{r}
+#| echo: false
+#| fig-width: 13
+#| fig-height: 7
+#| fig-align: "center"
+
+p <- nrow(Ind_Mat[[13]])
+      
+Wickets <- subset(Ind_Mat[[13]], select = c(1,2))
+p1 <- ggplot(data = Wickets, aes(x = players, y = wickets)) +
+  geom_bar(stat = "identity", fill = "steelblue", color = "black", width = 0.5) +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1))
+      
+Economy <- subset(Ind_Mat[[13]], select = c(1,3))
+p2 <- ggplot(data = Economy, aes(x = players, y = ECON)) +
+  geom_bar(stat = "identity", fill = "yellow", color = "black", width = 0.5) +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1))
+      
+n_0 <- subset(Ind_Mat[[13]], select = c(1,4))
+p3 <- ggplot(data = n_0, aes(x = players, y = `0's`)) +
+  geom_bar(stat = "identity", fill = "green", color = "black", width = 0.5) +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1))
+      
+boundaries <- Ind_Mat[[13]]$`4's` + Ind_Mat[[13]]$`6's`
+players <- Ind_Mat[[13]]$players
+n_bound <- data.frame(players, boundaries)
+p4 <- ggplot(data = n_bound, aes(x = players, y = boundaries)) +
+  geom_bar(stat = "identity", fill = "red", color = "black", width = 0.5) +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1))
+      
+(p1 + p2) / (p3 + p4) +
+  plot_annotation("India Bowling") &
+  theme(plot.title = element_text(face = "bold", hjust = 0.5, size = 20))
+      
+```
+
+From the above visualization, we can see why Ravichandran Ashwin became the Player Of The Match in the India VS Bangladesh match.
+
+\newpage
+We have shown the consistency of the bowlers of the 4 semi-finalist teams by their economy.
+
+```{r}
+#| echo: false
+#| fig-width: 13
+#| fig-height: 4
+#| fig-align: "center"
+
+Ashwin <- as.numeric(length(5))
+for(i in 0:4)
+{
+  a <- which(Ind_Mat[[11+i]]$players == "Ravichandran Ashwin")
+  Ashwin[i+1] = Ind_Mat[[11+i]]$ECON[a]
+}
+
+Nehra <- as.numeric(length(5))
+for(i in 0:4)
+{
+  a <- which(Ind_Mat[[11+i]]$players == "Ashish Nehra")
+  Nehra[i+1] = Ind_Mat[[11+i]]$ECON[a]
+}
+
+Bumrah <- as.numeric(length(5))
+for(i in 0:4)
+{
+  a <- which(Ind_Mat[[11+i]]$players == "Jasprit Bumrah")
+  Bumrah[i+1] = Ind_Mat[[11+i]]$ECON[a]
+}
+
+Jadeja <- as.numeric(length(5))
+for(i in 0:4)
+{
+  a <- which(Ind_Mat[[11+i]]$players == "Ravindra Jadeja")
+  Jadeja[i+1] = Ind_Mat[[11+i]]$ECON[a]
+}
+
+Pandya <- as.numeric(length(5))
+for(i in 0:4)
+{
+  a <- which(Ind_Mat[[11+i]]$players == "Hardik Pandya")
+  Pandya[i+1] = Ind_Mat[[11+i]]$ECON[a]
+}
+
+India_Bowling <- data.frame(Ashwin, Nehra, Bumrah, Jadeja, Pandya)
+
+India_Bowling_2 <- data.frame(x = seq_along(India_Bowling[, 1]), India_Bowling)
+India_Bowling_2 <- melt(India_Bowling_2, id.vars = "x")
+
+ggplot(India_Bowling_2, aes(x = x, y = value, color = variable)) +
+  geom_line(lwd = 1.1) +
+  guides(color = guide_legend(title = "Bowlers")) +
+  scale_color_discrete(labels = c("Ravichandran Ashwin", "Ashish Nehra", "Jasprit Bumrah", "Ravindra Jadeja", "Hardik Pandya")) +
+  labs(x = "Matches", y = "Economy", title = "Consistency of India Bowlers")
+
+
+
+Corey <- as.numeric(length(5))
+for(i in 0:4)
+{
+  a <- which(nz_Mat[[11+i]]$players == "Corey Anderson")
+  Corey[i+1] = nz_Mat[[11+i]]$ECON[a]
+}
+
+Mitchell <- as.numeric(length(5))
+for(i in 0:4)
+{
+  a <- which(nz_Mat[[11+i]]$players == "Mitchell Santner")
+  Mitchell[i+1] = nz_Mat[[11+i]]$ECON[a]
+}
+
+Grant <- as.numeric(length(5))
+for(i in 0:4)
+{
+  a <- which(nz_Mat[[11+i]]$players == "Grant Elliott")
+  Grant[i+1] = nz_Mat[[11+i]]$ECON[a]
+}
+
+Ish <- as.numeric(length(5))
+for(i in 0:4)
+{
+  a <- which(nz_Mat[[11+i]]$players == "Ish Sodhi")
+  Ish[i+1] = nz_Mat[[11+i]]$ECON[a]
+}
+
+NZ_Bowling <- data.frame(Corey, Mitchell, Grant, Ish)
+
+NZ_Bowling_2 <- data.frame(x = seq_along(NZ_Bowling[, 1]), NZ_Bowling)
+NZ_Bowling_2 <- melt(NZ_Bowling_2, id.vars = "x")
+
+ggplot(NZ_Bowling_2, aes(x = x, y = value, color = variable)) +
+  geom_line(lwd = 1.1) +
+  guides(color = guide_legend(title = "Bowlers")) +
+  scale_color_discrete(labels = c("Corey Anderson", "Mitchell Santner", "Grant Elliott", "Ish Sodhi")) +
+  labs(x = "Matches", y = "Economy", title = "Consistency of New Zealand Bowlers")
+
+
+David <- as.numeric(length(6))
+for(i in 0:5)
+{
+  a <- which(eng_Mat[[13+i]]$players == "David Willey")
+  David[i+1] = eng_Mat[[13+i]]$ECON[a]
+}
+
+Chris <- as.numeric(length(6))
+for(i in 0:5)
+{
+  a <- which(eng_Mat[[13+i]]$players == "Chris Jordan")
+  Chris[i+1] = eng_Mat[[13+i]]$ECON[a]
+}
+
+Ben <- as.numeric(length(6))
+for(i in 0:5)
+{
+  a <- which(eng_Mat[[13+i]]$players == "Ben Stokes")
+  Ben[i+1] = eng_Mat[[13+i]]$ECON[a]
+}
+
+Adil <- as.numeric(length(6))
+for(i in 0:5)
+{
+  a <- which(eng_Mat[[13+i]]$players == "Adil Rashid")
+  Adil[i+1] = eng_Mat[[13+i]]$ECON[a]
+}
+
+Eng_Bowling <- data.frame(David, Chris, Ben, Adil)
+
+Eng_Bowling_2 <- data.frame(x = seq_along(Eng_Bowling[, 1]), Eng_Bowling)
+Eng_Bowling_2 <- melt(Eng_Bowling_2, id.vars = "x")
+
+ggplot(Eng_Bowling_2, aes(x = x, y = value, color = variable)) +
+  geom_line(lwd = 1.1) +
+  guides(color = guide_legend(title = "Bowlers")) +
+  scale_color_discrete(labels = c("David Willey", "Chris Jordan", "Ben Stokes", "Adil Rashid")) +
+  labs(x = "Matches", y = "Economy", title = "Consistency of England Bowlers")
+
+
+Samuel <- as.numeric(length(6))
+for(i in 0:5)
+{
+  a <- which(Wi_Mat[[13+i]]$players == "Samuel Badree")
+  Samuel[i+1] = Wi_Mat[[13+i]]$ECON[a]
+}
+
+Andre <- as.numeric(length(6))
+for(i in 0:5)
+{
+  a <- which(Wi_Mat[[13+i]]$players == "Andre Russell")
+  Andre[i+1] = Wi_Mat[[13+i]]$ECON[a]
+}
+
+Dwayne <- as.numeric(length(6))
+for(i in 0:5)
+{
+  a <- which(Wi_Mat[[13+i]]$players == "Dwayne Bravo")
+  Dwayne[i+1] = Wi_Mat[[13+i]]$ECON[a]
+}
+
+Sulieman <- as.numeric(length(6))
+for(i in 0:5)
+{
+  a <- which(Wi_Mat[[13+i]]$players == "Sulieman Benn")
+  Sulieman[i+1] = Wi_Mat[[13+i]]$ECON[a]
+}
+
+Carlos <- as.numeric(length(6))
+for(i in 0:5)
+{
+  a <- which(Wi_Mat[[13+i]]$players == "Carlos Brathwaite")
+  Carlos[i+1] = Wi_Mat[[13+i]]$ECON[a]
+}
+
+WI_Bowling <- data.frame(Samuel, Andre, Dwayne, Sulieman)
+
+WI_Bowling_2 <- data.frame(x = seq_along(WI_Bowling[, 1]), WI_Bowling)
+WI_Bowling_2 <- melt(WI_Bowling_2, id.vars = "x")
+
+ggplot(WI_Bowling_2, aes(x = x, y = value, color = variable)) +
+  geom_line(lwd = 1.1) +
+  guides(color = guide_legend(title = "Bowlers")) +
+  scale_color_discrete(labels = c("Samuel Badree", "Andre Russell", "Dwayne Bravo", "Sulieman Benn", "Carlos Brathwaite")) +
+  labs(x = "Matches", y = "Economy", title = "Consistency of West Indies Bowlers")
+
+```
+Frome these line graphs, we can clearly visualize the consistency of the New Zealand bowlers, except the last match.
+Also, we can see the brilliant consistency of the Indian bowler, Ashish Nehra through out the matches.
+
+
+# FINAL CONCLUSIONS
+
+Analysis related to stadiums and players is very crude as we have collected data on very few matches, so we might not make any fair conclusions on the aspects for which we have fewer data points.
+  
+  1.	In the toss factor of our shiny app we have plotted the number of matches vs relative frequency where the relative frequency is the proportion of matches where the team which wins the toss also wins the match. We have observed that if a team wins the toss there is a 60 to 70% chance of winning the match.
+
+  2.	We have also observed the consistency of bowlers in four semi-finalist teams. The observation might have some biases as the bowlers may not have given their best in each match.
+ 
+  3.	Along with this we can also comment on runs that are expected by any team in a particular stadium by looking at its previous average of runs made.
+
+
+
+# REFERENCES
+
+  https://www.espncricinfo.com/series/world-t20-2015-16-901359
+
+
+
+
