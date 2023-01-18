@@ -1,0 +1,8 @@
+Readme
+Here is the code for our web scrapping.
+
+Project_T20_Scrapping.R: For scrapping.
+
+Project_idea_1.R: For scrapping, refinement of dataframes and making some other smaller useful datasets.
+
+project_t20.R: For further refinement and making different plots.
