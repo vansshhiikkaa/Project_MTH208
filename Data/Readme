@@ -1,0 +1,11 @@
+Here is the data from our scrapping.
+
+England_Matches.Rdata and ENG.Rdata: contains data of all matches played by England.
+
+NewZealand.Rdata and NZ.Rdata: contains data of all matches played by NewZealand.
+
+India_Matches.Rdata and INDIA.Rdata: contains data of all matches played by India.
+
+WestIndies_Match.Rdata and WI.Rdata: contains data of all matches played by WestIndies.
+
+T20_WorldCup_2016.Rdata: contains data of all matches played in the tournament.
